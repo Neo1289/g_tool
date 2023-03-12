@@ -1,0 +1,37 @@
+import itertools
+import re
+
+def compara(stri,stri2):
+    counter=0
+    pal=''
+    for i in range(len(stri)):
+        if stri[i]=='A'and stri2[i]=='T':
+            pal+=stri[i]
+        if stri[i]=='T'and stri2[i]=='A':
+            pal+=stri[i]
+        if stri[i]=='G'and stri2[i]=='C':
+            pal+=stri[i]
+        if stri[i]=='C'and stri2[i]=='G':
+            pal+=stri[i]
+        counter+=1
+    if pal==stri:
+        return len(pal),stri
+    else:
+        return('')
+
+def loci(string):
+    with open(string) as f:
+        my_s = ''.join(f.read().strip().split('\n')[1:])
+    templates = [element for element in [my_s[x:y] for x, y in itertools.combinations(range(len(my_s) + 1), r = 2)] if 4 <= len(element) < 13]
+    templates2 = [t[::-1] for t in templates]
+    mydict= list(zip(templates,templates2))
+    results= itertools.starmap(comparator, mydict)
+    true_results= [element for element in results if element != '']
+    length=[el[0] for el in true_results]
+    positions= [ele[1] for ele in true_results]
+    true_position = [match.span() for p in positions for match in re.finditer(p, my_s)]
+    true_position= set(true_position)
+    true_position= sorted([e[0]+1 for e in true_position])
+    final_results= list(zip(true_position,length))
+    for ele in final_results:
+        print(ele)
