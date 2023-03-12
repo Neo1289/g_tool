@@ -1,0 +1,359 @@
+import re
+import os
+import numpy as np
+import pandas as pd
+from itertools import combinations
+
+class Genetic_search():
+    '''various tools to perform genetic tests'''
+    def __init__ (self):
+        print('welcome to genetic search!')
+    
+    def test_seq(self,pattern,file):
+        '''takes a file in and looks for a sequence within the sequence. it returns a pd.Series '''
+        self.file=file
+        self.pattern=pattern
+        my_keys=''
+        with open(file) as fi:
+            beacon=fi.read()
+        four_bases = ['A','T','C','G']
+        code=''
+        for letter in range(len(beacon)):
+            if beacon[letter] in four_bases:
+                code+= beacon[letter]   
+        #find the pattern in the code
+        for element in re.finditer(pattern,code):
+            my_keys+=str((element))
+        my_keys=my_keys.replace('<re.Match object;','').split('>')
+        my_final_keys = pd.Series(my_keys)
+        return my_final_keys
+    
+    def complement(self,file):
+        '''method that returns the complementary string of DNA. takes one argument(txt or fasta file)'''
+        self.file = file
+        complementary_DNA = []
+        with open(self.file) as n:
+            text = n.read()
+        if not('A' in text and 'T' in text and 'G' in text and 'C' in text):
+            print('this is not DNA')
+        else:
+            for letter in text:
+                if letter == 'A':
+                    complementary_DNA.append('T')
+                elif letter == 'T':
+                    complementary_DNA.append('A')
+                elif letter == 'G':
+                    complementary_DNA.append('C')
+                elif letter == 'C':
+                    complementary_DNA.append('G')
+            print('the complementary sequence is: \n', ''.join(complementary_DNA))
+    
+    def hum_diff(self,file_one,file_two):
+            
+        '''method that calculate the difference(humming) between 2 sequence (DNA or RNA).
+        it takes two arguments(file txt or fasta), please not that the 2 strings must have the same lenght '''
+        self.file_one = file_one
+        self.file_two = file_two
+        count = 0
+        with open(file_one) as n, open(file_two) as f:
+            textone = n.read()             
+            texttwo = f.read()        
+            for letter in range(len(textone)):
+                if textone[letter]!= texttwo[letter]:
+                    count +=1
+            hum_dif = int(count/len(file_one)*100)
+            print (f'the humming difference between the first sequence and the second is {hum_dif} %')
+            
+
+    def CG_content(self,file):
+        '''takes in a file and counts the amount of CG, this method is set to work well on fasta files format'''
+        self.file=file
+        holder = ''
+        high = []
+        counter=0
+        counter_two = []
+        final = {}
+        with open(file) as ico:
+            mica = ico.read()
+        misuse = mica.split('\n')
+
+        for line in misuse:
+            if line[0] != '>':
+                holder+= line
+            elif line [0] == '>':
+                high.append(holder)
+                holder = ''
+        high.append(holder)
+        if '' in high:
+            high.remove('')
+        for element in high:
+            for letter in range(len(element)):
+                if element[letter] == 'C' or element[letter] == 'G':
+                    counter +=1
+            counter_two.append(counter)
+            counter= 0
+       #high are the strings, counter_two are the count of CG
+        for number in range(len(high)):
+            final[high[number]]= 'the CG content is around: '+str(round(counter_two[number]/len(high[number])*100))+'%'
+        return final
+
+    def traduction(self,file):
+        ''' looks for codons in a string of RNA and translate it into aa'''
+        self.file=file
+        translation = {'UUU':'Phe','UUC':'Phe',
+                           'UUA':'Leu','UUG':'Leu','CUU':'Leu','CUC':'Leu','CUA':'Leu','CUG':'Leu',
+                           'AUU':'Ile','AUC':'Ile','AUA':'Ile',
+                           'AUG':'Met',
+                           'GUU':'Val','GUC':'Val','GUA':'Val','GUG':'Val',
+                           'UCU':'Ser','UCC':'Ser','UCA':'Ser','UCG':'Ser',
+                           'CCU':'Pro','CCC':'Pro','CCA':'Pro','CCG':'Pro',
+                           'ACU':'Thr','ACC':'Thr','ACA':'Thr','ACG':'Thr',
+                           'GCU':'Ala','GCC':'Ala','GCA':'Ala','GCG':'Ala',
+                           'UAU':'Tyr','UAC':'Tyr',
+                           'CAU':'His','CAC':'His',
+                           'CAA':'Gln','CAG':'Gln',
+                           'AAU':'Asn','AAC':'Asn',
+                           'AAA':'Lys','AAG':'Lys',
+                           'GAU':'Asp','GAC':'Asp',
+                           'GAA':'Glu','GAG':'Glu',
+                           'UGU':'Cys','UGC':'Cys',
+                           'UGG':'Trp',
+                           'CGU':'Arg','CGC':'Arg','CGA':'Arg','CGG':'Arg',
+                           'AGU':'Ser','AGC':'Ser',
+                           'AGA':'Arg','AGG':'Arg',
+                           'GGU':'Gly','GGC':'Gly','GGA':'Gly','GGG':'Gly',
+                           'UAA':'XXX','UAG':'XXX','UGA':'XXX'}
+        start=0
+        end = 3
+        protein=''
+        with open (file) as rna:
+            my_rna= rna.read()
+    
+        while start < len(my_rna)-3:
+            if my_rna[start:end] in translation:
+                protein += translation[my_rna[start:end]]+'-'
+                start+=3
+                end+=3
+            else:
+                protein+= 'xxx'+'-'
+                start+=3
+                end+=3
+        return protein
+
+
+    def mRNA_template(self,dna):
+        '''takes 1 argument. takes in a DNA sequence and turn it into a RNA sequence. It also cleans the data and write the output into a file named rna sequence'''
+        self.dna=dna
+        with open(dna) as seq:
+            es = seq.read()
+        four_bases = ['A','T','C','G']
+        rna=''
+        for letter in range(len(es)):
+            if es[letter] in four_bases:
+                    if es[letter] != 'T':
+                        rna+= es[letter]
+                    else:
+                        rna+='U'
+        with open('complete_rna_sequence','w') as out:
+            out.write(rna)
+        return rna
+            
+    def find_introns(self):
+        '''automatically takes in the file from premRNA_template and looks for introns.It is important to run premRNA finders before running this method'''
+        with open('complete_rna_sequence') as de:
+            se=de.read()
+        pattern=r'GU\D{20,200}AG'
+        for match in re.finditer(pattern,se):
+            print(match)
+            with open('rna_sequence_exons_list','w') as outyy:
+                outyy.write(str(re.findall(pattern,se)))
+        with open('rna_sequence_only_exons','w') as outy:
+            outy.write(''.join(re.findall(pattern,se)))   
+            
+    def counting(self,string,pattern):
+        '''takes 2 arguments.Find pairs of characters: counts how many times a certain substring appears in another string. 
+'''
+        self.string=string
+        with open(string) as st:
+            myst = st.read()
+            print('this is the sequence of choice, long {} bp:\n'.format(len(myst)),myst)              
+        count = 0     
+        for num in range(len(myst)+1):
+            if(myst[0+num:(len(pattern)+num)])==pattern:
+                count+=1
+                print('match found at position',0+num,'to',(len(pattern)+num))
+        print('the pattern {} appears {} times in the string'.format(pattern,count))
+    
+    def get_base_counts(self,dna):
+        '''takes one string and counts how many instances of bases there are'''
+        self.dna=dna
+        counts = {'A': 0, 'T': 0, 'G': 0, 'C': 0}
+        for base in dna:
+            if base in counts:
+                counts[base] += 1
+        return counts
+    
+    def transform(self,file):
+        '''takes a file that contains a DNA sequence and looks for codons. 
+        Then it makes you decide which portion of the sequence to analise and returns all the possible aa matches'''
+        translation = {'UUU':'Phe','UUC':'Phe',
+                   'UUA':'Leu','UUG':'Leu','CUU':'Leu','CUC':'Leu','CUA':'Leu','CUG':'Leu',
+                   'AUU':'Ile','AUC':'Ile','AUA':'Ile',
+                   'AUG':'Met',
+                   'GUU':'Val','GUC':'Val','GUA':'Val','GUG':'Val',
+                   'UCU':'Ser','UCC':'Ser','UCA':'Ser','UCG':'Ser',
+                   'CCU':'Pro','CCC':'Pro','CCA':'Pro','CCG':'Pro',
+                   'ACU':'Thr','ACC':'Thr','ACA':'Thr','ACG':'Thr',
+                   'GCU':'Ala','GCC':'Ala','GCA':'Ala','GCG':'Ala',
+                   'UAU':'Tyr','UAC':'Tyr',
+                   'CAU':'His','CAC':'His',
+                   'CAA':'Gln','CAG':'Gln',
+                   'AAU':'Asn','AAC':'Asn',
+                   'AAA':'Lys','AAG':'Lys',
+                   'GAU':'Asp','GAC':'Asp',
+                   'GAA':'Glu','GAG':'Glu',
+                   'UGU':'Cys','UGC':'Cys',
+                   'UGG':'Trp',
+                   'CGU':'Arg','CGC':'Arg','CGA':'Arg','CGG':'Arg',
+                   'AGU':'Ser','AGC':'Ser',
+                   'AGA':'Arg','AGG':'Arg',
+                   'GGU':'Gly','GGC':'Gly','GGA':'Gly','GGG':'Gly',
+                   'UAA':'XXX','UAG':'XXX','UGA':'XXX'}
+        self.file= file
+        joined_sequence = ''
+        my_dic=['A','T','C','G']
+        with open (file) as re:
+            gi = re.read()
+        for letter in gi:
+            if letter in my_dic:
+                joined_sequence+=letter
+            arra = []
+        start = 0
+        end = 3
+        while start < len(joined_sequence)-3:
+                arra.append(joined_sequence[start:end])
+                start += 3
+                end += 3
+        my_array= np.array(arra)
+        print(my_array)
+        coding_sequence=[]
+        for element in range(len(my_array)):
+            if my_array[element] == 'ATG':
+                coding_sequence.append((my_array[element],element))
+            elif my_array[element] == 'TAA':
+                coding_sequence.append((my_array[element],element))
+
+        print(coding_sequence)
+        y = int(input('which starting codon would you like to analise? '))
+        x = int(input('which ending codon would you like to analise? '))
+        with open('codon_array','w') as fc:
+            d = fc.write(str(my_array[y:x+1]))
+        #put the array in a DataFrame and then use the map method to replace
+        final=(my_array[y:x+1])
+        final2= pd.DataFrame(final)
+        return np.array(final2[0].map(translation))
+    
+    
+    def testing(self,pattern,string):
+        self.pattern= pattern
+        self.string=string
+        holder=[]
+        for number in range(len(string)+1):
+            if(string[number:len(pattern)+number])== pattern:
+                holder.append((number,number+len(pattern)))
+        return holder        
+    
+    def find_motif(file):
+        '''find the longest substring common to each string. works with FASTA file from Pubmed'''
+        holder = ''
+        high = []
+        with open(file) as ico:
+            mica = ico.read()
+        misuse = mica.split('\n')
+        for line in misuse:
+            if '>' not in str(line):
+                holder+= line
+            elif '>' in str(line):
+                high.append(holder)
+                holder = ''
+        high.append(holder)
+        if '' in high:
+            high.remove('')
+        my_template= high[0]
+        res = [my_template[x:y] for x, y in combinations(range(len(my_template) + 1), r = 2)]  
+        my_dic=dict.fromkeys(res,0)
+        for element in res:
+            for number in range(len(high)):
+                if element in str(high[number]):
+                    my_dic[element]+=1
+        for eleme in my_dic:
+            if my_dic[eleme] >=3:
+                print (eleme,my_dic[eleme])
+                
+    def find_ancestor(self,file):
+            '''finds the most recent common ancestor in a bucket of sequences. it works with FASTA files'''
+            self.file=file
+            bases=['A','T','G','C']
+            string=''
+            counter=0
+            with open (file) as file:
+                raw_data= file.read()
+            for letter in raw_data:
+                if letter in bases:
+                    string+=letter
+            final= len(string)
+            for letter in raw_data:
+                if letter == '>':
+                    counter+=1
+            step= int(final/counter)
+            parts = [string[i:i+step] for i in range(0, len(string), step)]
+
+            my_df_S= pd.Series(parts)
+            final= pd.DataFrame(my_df_S.str.split('',expand=True),dtype='str')
+            my_mode= final.mode()
+            my_mode=my_mode.dropna()
+            my_mode.to_csv('my_grid.csv')
+            return my_mode
+        
+    def my_consensus(self,file):
+        '''build a grid of consensus and provides with the common ancestor. works with a FASTA file'''
+        self.file=file
+        bases=['A','T','G','C']
+        string=''
+        counter=0
+        with open (file) as file:
+            raw_data= file.read()
+        for letter in raw_data:
+            if letter in bases:
+                string+=letter
+        final= len(string)
+        for letter in raw_data:
+            if letter == '>':
+                counter+=1
+        step= int(final/counter)
+        parts = [string[i:i+step] for i in range(0, len(string), step)]
+        profile_matrix= {
+            'A':[0]*step,
+            'C':[0]*step,
+            'G':[0]*step,
+            'T':[0]*step,       
+        }
+        for dna in parts:
+            for position,nucleotide in enumerate(dna):
+                profile_matrix[nucleotide][position]+=1
+        result = [] # list to save nucleotide with max count from each "row"
+
+        for position in range(step):
+            max_count = 0
+            max_nucleotide = None
+            for nucleotide in ['A', 'C', 'G', 'T']:
+                count = profile_matrix[nucleotide][position]
+                if count > max_count:
+                    max_count = count
+                    max_nucleotide = nucleotide
+            result.append(max_nucleotide)
+
+        consensus = ''.join(result)
+
+        return consensus,profile_matrix
+
